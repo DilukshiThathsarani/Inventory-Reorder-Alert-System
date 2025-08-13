@@ -1,27 +1,45 @@
-require('dotenv').config(); // Load env variables first
+require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const cors = require('cors');
-const connectDB = require('./config/db');
+const dotenv = require('dotenv');
+const mongoose = require('mongoose');
 
 dotenv.config();
 
-
 const app = express();
 
-app.use(cors());
+mongoose.set('strictQuery', false);
+
+// MongoDB connection
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('MongoDB connected'))
+.catch(err => console.error('MongoDB connection error:', err));
+
+// Middleware
 app.use(express.json());
-app.use('/api/auth', require('./routes/authRoutes'));
-//app.use('/api/tasks', require('./routes/taskRoutes'));
+app.use(cors());
 
-// Export the app object for testing
-if (require.main === module) {
-    connectDB();
-    // If the file is run directly, start the server
-    const PORT = process.env.PORT || 5001;
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Example route
+app.get('/', (req, res) => {
+  res.send('Backend is running!');
+});
+
+// Start server
+let PORT = process.env.PORT || 5001;
+
+const server = app.listen(PORT, '127.0.0.1', () => {
+  console.log(`Server running on port ${server.address().port}`);
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`Port ${PORT} in use, trying next port...`);
+    PORT += 1;
+    server.listen(PORT, '127.0.0.1');
+  } else {
+    console.error(err);
   }
-
-
-module.exports = app
+});
