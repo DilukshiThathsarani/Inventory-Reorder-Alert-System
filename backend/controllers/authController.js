@@ -2,6 +2,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const express = require('express');
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -71,3 +72,4 @@ const updateUserProfile = async (req, res) => {
 };
 
 module.exports = { registerUser, loginUser, updateUserProfile, getProfile };
+const app = express();

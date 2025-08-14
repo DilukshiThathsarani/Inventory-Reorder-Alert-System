@@ -1,6 +1,6 @@
 
 const express = require('express');
-const { getInventory, addInventory, updateInventory, deleteInventory } = require('../controllers/taskController');
+const { getInventory, addInventory, updateInventory, deleteInventory } = require('../controllers/inventoryController');
 const { protect } = require('../middleware/authMiddleware');
 const router = express.Router();
 
