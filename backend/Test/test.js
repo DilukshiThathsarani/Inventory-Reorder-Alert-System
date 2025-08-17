@@ -1,4 +1,3 @@
-
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const http = require('http');
@@ -6,37 +5,36 @@ const app = require('../server');
 const connectDB = require('../config/db');
 const mongoose = require('mongoose');
 const sinon = require('sinon');
-const Inventory = require('../models/inventoryItem');
-const { updateInventoryItem,getInventoryItem,addInventoryItem,deleteInventoryItem } = require('../controllers/inventoryController');
+const InventoryItem = require('../models/inventoryItem');
+const { updateInventoryItem, getAllInventoryItems, addInventoryItem, deleteInventoryItem, getInventoryItemsByFields } = require('../controllers/inventoryController');
 const { expect } = chai;
 
 chai.use(chaiHttp);
 let server;
 let port;
 
-//getInventory, addInventory, updateInventory, deleteInventory
-describe('Add Inventory Item Function Test', () => {
-sinon.spy(console, 'log');  // or just a simple use to clear warning
+describe('AddInventoryItem Function Test', () => {
+  sinon.spy(console, 'log');  // or just a simple use to clear warning
 
   it('should create a new item successfully', async () => {
     // Mock request data
     const mockUserId = new mongoose.Types.ObjectId();
 
-        const req = {
-          user: { id: mockUserId },
-          body: {
-            itemName: "Test Item",
-            itemDescription: "Test Description",
-            itemAvailableQty: 10
-          }
-        };
+    const req = {
+      user: { id: mockUserId },
+      body: {
+        itemName: "Test Item",
+        itemDescription: "Test Description",
+        itemAvailableQty: 10
+      }
+    };
 
 
     // Mock inventory that would be created
-    const createdInventory = { _id: new mongoose.Types.ObjectId(), ...req.body, userId: req.user.id };
+    const createdInventoryItem = { _id: new mongoose.Types.ObjectId(), ...req.body, userId: req.user.id };
 
-    // Stub Inventory.create to return the createdInventory
-    const createStub = sinon.stub(Inventory, 'create').resolves(createdInventory);
+    // Stub Inventory.create to return the createdInventoryItem
+    const createStub = sinon.stub(InventoryItem, 'create').resolves(createdInventoryItem);
 
     // Mock response object
     const res = {
@@ -49,14 +47,14 @@ sinon.spy(console, 'log');  // or just a simple use to clear warning
 
     // Assertions
     expect(createStub.calledOnceWithExactly({
-          itemName: req.body.itemName,
-          itemDescription: req.body.itemDescription,
-          itemAvailableQty: req.body.itemAvailableQty,
-          userId: mockUserId
-        })).to.be.true;
+      itemName: req.body.itemName,
+      itemDescription: req.body.itemDescription,
+      itemAvailableQty: req.body.itemAvailableQty,
+      userId: mockUserId
+    })).to.be.true;
     console.log(res);
     expect(res.status.calledWith(201)).to.be.true;
-    expect(res.json.calledWith(createdInventory)).to.be.true;
+    expect(res.json.calledWith(createdInventoryItem)).to.be.true;
 
     // Restore stubbed methods
     createStub.restore();
@@ -64,19 +62,19 @@ sinon.spy(console, 'log');  // or just a simple use to clear warning
 
   it('should return 500 if an error occurs', async () => {
     // Stub Inventory.create to throw an error
-    const createStub = sinon.stub(Inventory, 'create').rejects(new Error('DB Error'));
+    const createStub = sinon.stub(InventoryItem, 'create').rejects(new Error('DB Error'));
 
 
     // Mock Invalid request data
     const mockUserId = new mongoose.Types.ObjectId();
-     const req = {
-       user: { id: mockUserId },
-       body: {
-         itemName: "Invalid Item",
-         itemDescription: "Should fail",
-         itemAvailableQty: 5
-       }
-     };
+    const req = {
+      user: { id: mockUserId },
+      body: {
+        itemName: "Invalid Item",
+        itemDescription: "Should fail",
+        itemAvailableQty: 5
+      }
+    };
 
     // Mock response object
     const res = {
@@ -94,228 +92,369 @@ sinon.spy(console, 'log');  // or just a simple use to clear warning
     // Restore stubbed methods
     createStub.restore();
   });
-
 });
 
-//
-//describe('Update Function Test', () => {
-//
-//  it('should update inventory successfully', async () => {
-//    // Mock inventory data
-//    const inventoryId = new mongoose.Types.ObjectId();
-//    const existingInventory = {
-//      _id: inventoryId,
-//      title: "Old Inventory",
-//      description: "Old Description",
-//      completed: false,
-//      deadline: new Date(),
-//      save: sinon.stub().resolvesThis(), // Mock save method
-//    };
-//    // Stub Inventory.findById to return mock inventory
-//    const findByIdStub = sinon.stub(Inventory, 'findById').resolves(existingInventory);
-//
-//    // Mock request & response
-//    const req = {
-//      params: { id: inventoryId },
-//      body: { title: "New Inventory", completed: true }
-//    };
-//    const res = {
-//      json: sinon.spy(),
-//      status: sinon.stub().returnsThis()
-//    };
-//
-//    // Call function
-//    await updateInventory(req, res);
-//
-//    // Assertions
-//    expect(existingInventory.title).to.equal("New Inventory");
-//    expect(existingInventory.completed).to.equal(true);
-//    expect(res.status.called).to.be.false; // No error status should be set
-//    expect(res.json.calledOnce).to.be.true;
-//
-//    // Restore stubbed methods
-//    findByIdStub.restore();
-//  });
-//
-//
-//
-//  it('should return 404 if inventory is not found', async () => {
-//    const findByIdStub = sinon.stub(Inventory, 'findById').resolves(null);
-//
-//    const req = { params: { id: new mongoose.Types.ObjectId() }, body: {} };
-//    const res = {
-//      status: sinon.stub().returnsThis(),
-//      json: sinon.spy()
-//    };
-//
-//    await updateInventory(req, res);
-//
-//    expect(res.status.calledWith(404)).to.be.true;
-//    expect(res.json.calledWith({ message: 'Inventory not found' })).to.be.true;
-//
-//    findByIdStub.restore();
-//  });
-//
-//  it('should return 500 on error', async () => {
-//    const findByIdStub = sinon.stub(Inventory, 'findById').throws(new Error('DB Error'));
-//
-//    const req = { params: { id: new mongoose.Types.ObjectId() }, body: {} };
-//    const res = {
-//      status: sinon.stub().returnsThis(),
-//      json: sinon.spy()
-//    };
-//
-//    await updateInventory(req, res);
-//
-//    expect(res.status.calledWith(500)).to.be.true;
-//    expect(res.json.called).to.be.true;
-//
-//    findByIdStub.restore();
-//  });
-//
-//
-//
-//});
-//
-//
-//
-//describe('GetInventory Function Test', () => {
-//
-//  it('should return inventries for the given user', async () => {
-//    // Mock user ID
-//    const userId = new mongoose.Types.ObjectId();
-//
-//    // Mock inventory data
-//    const inventries = [
-//      { _id: new mongoose.Types.ObjectId(), title: "Inventory 1", userId },
-//      { _id: new mongoose.Types.ObjectId(), title: "Inventory 2", userId }
-//    ];
-//
-//    // Stub Inventory.find to return mock inventries
-//    const findStub = sinon.stub(Inventory, 'find').resolves(inventries);
-//
-//    // Mock request & response
-//    const req = { user: { id: userId } };
-//    const res = {
-//      json: sinon.spy(),
-//      status: sinon.stub().returnsThis()
-//    };
-//
-//    // Call function
-//    await getInventory(req, res);
-//
-//    // Assertions
-//    expect(findStub.calledOnceWith({ userId })).to.be.true;
-//    expect(res.json.calledWith(inventries)).to.be.true;
-//    expect(res.status.called).to.be.false; // No error status should be set
-//
-//    // Restore stubbed methods
-//    findStub.restore();
-//  });
-//
-//  it('should return 500 on error', async () => {
-//    // Stub Inventory.find to throw an error
-//    const findStub = sinon.stub(Inventory, 'find').throws(new Error('DB Error'));
-//
-//    // Mock request & response
-//    const req = { user: { id: new mongoose.Types.ObjectId() } };
-//    const res = {
-//      json: sinon.spy(),
-//      status: sinon.stub().returnsThis()
-//    };
-//
-//    // Call function
-//    await getInventory(req, res);
-//
-//    // Assertions
-//    expect(res.status.calledWith(500)).to.be.true;
-//    expect(res.json.calledWithMatch({ message: 'DB Error' })).to.be.true;
-//
-//    // Restore stubbed methods
-//    findStub.restore();
-//  });
-//
-//});
-//
-//
-//
-//describe('DeleteInventory Function Test', () => {
-//
-//  it('should delete a inventory successfully', async () => {
-//    // Mock request data
-//    const req = { params: { id: new mongoose.Types.ObjectId().toString() } };
-//
-//    // Mock inventory found in the database
-//    const inventory = { remove: sinon.stub().resolves() };
-//
-//    // Stub Inventory.findById to return the mock inventory
-//    const findByIdStub = sinon.stub(Inventory, 'findById').resolves(inventory);
-//
-//    // Mock response object
-//    const res = {
-//      status: sinon.stub().returnsThis(),
-//      json: sinon.spy()
-//    };
-//
-//    // Call function
-//    await deleteInventory(req, res);
-//
-//    // Assertions
-//    expect(findByIdStub.calledOnceWith(req.params.id)).to.be.true;
-//    expect(inventory.remove.calledOnce).to.be.true;
-//    expect(res.json.calledWith({ message: 'Inventory deleted' })).to.be.true;
-//
-//    // Restore stubbed methods
-//    findByIdStub.restore();
-//  });
-//
-//  it('should return 404 if inventory is not found', async () => {
-//    // Stub Inventory.findById to return null
-//    const findByIdStub = sinon.stub(Inventory, 'findById').resolves(null);
-//
-//    // Mock request data
-//    const req = { params: { id: new mongoose.Types.ObjectId().toString() } };
-//
-//    // Mock response object
-//    const res = {
-//      status: sinon.stub().returnsThis(),
-//      json: sinon.spy()
-//    };
-//
-//    // Call function
-//    await deleteInventory(req, res);
-//
-//    // Assertions
-//    expect(findByIdStub.calledOnceWith(req.params.id)).to.be.true;
-//    expect(res.status.calledWith(404)).to.be.true;
-//    expect(res.json.calledWith({ message: 'Inventory not found' })).to.be.true;
-//
-//    // Restore stubbed methods
-//    findByIdStub.restore();
-//  });
-//
-//  it('should return 500 if an error occurs', async () => {
-//    // Stub Inventory.findById to throw an error
-//    const findByIdStub = sinon.stub(Inventory, 'findById').throws(new Error('DB Error'));
-//
-//    // Mock request data
-//    const req = { params: { id: new mongoose.Types.ObjectId().toString() } };
-//
-//    // Mock response object
-//    const res = {
-//      status: sinon.stub().returnsThis(),
-//      json: sinon.spy()
-//    };
-//
-//    // Call function
-//    await deleteInventory(req, res);
-//
-//    // Assertions
-//    expect(res.status.calledWith(500)).to.be.true;
-//    expect(res.json.calledWithMatch({ message: 'DB Error' })).to.be.true;
-//
-//    // Restore stubbed methods
-//    findByIdStub.restore();
-//  });
-//
-//});
+
+describe('GetAllInventory Items Function Test', () => {
+
+  it('should return all inventory items successfully', async () => {
+    // Mock data
+    const items = [
+      { _id: new mongoose.Types.ObjectId(), itemName: "Item 1" },
+      { _id: new mongoose.Types.ObjectId(), itemName: "Item 2" }
+    ];
+
+    // Stub inventoryItem.find to return mock items
+    const findStub = sinon.stub(InventoryItem, 'find').resolves(items);
+
+    // Mock request and response
+    const req = {};
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await getAllInventoryItems(req, res);
+
+    // Assertions
+    expect(findStub.calledOnce).to.be.true;
+    expect(res.status.calledWith(200)).to.be.true;
+    expect(res.json.calledWith(items)).to.be.true;
+
+    findStub.restore();
+  });
+
+  it('should return 500 if an error occurs', async () => {
+    const findStub = sinon.stub(InventoryItem, 'find').rejects(new Error('DB Error'));
+
+    const req = {};
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await getAllInventoryItems(req, res);
+
+    expect(res.status.calledWith(500)).to.be.true;
+    expect(res.json.calledWithMatch({ message: 'DB Error' })).to.be.true;
+
+    findStub.restore();
+  });
+});
+
+describe('Update Inventory Item Function Test', () => {
+
+  it('should update an inventory item successfully', async () => {
+    const itemId = new mongoose.Types.ObjectId();
+
+    const req = {
+      params: { id: itemId.toString() },
+      body: {
+        itemName: 'Updated Name',
+        itemDescription: 'Updated Description',
+        itemAvailableQty: 15
+      }
+    };
+
+    const existingItem = {
+      _id: itemId,
+      itemName: 'Old Name',
+      itemDescription: 'Old Description',
+      itemAvailableQty: 5,
+      save: sinon.stub().resolvesThis()
+    };
+
+    const findByIdStub = sinon.stub(InventoryItem, 'findById').resolves(existingItem);
+
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await updateInventoryItem(req, res);
+
+    expect(findByIdStub.calledOnceWithExactly(itemId.toString())).to.be.true;
+    expect(existingItem.save.calledOnce).to.be.true;
+    expect(existingItem.itemName).to.equal('Updated Name');
+    expect(existingItem.itemDescription).to.equal('Updated Description');
+    expect(existingItem.itemAvailableQty).to.equal(15);
+    expect(res.json.calledWith(existingItem)).to.be.true;
+
+    findByIdStub.restore();
+  });
+
+  it('should return 404 if item is not found', async () => {
+    const itemId = new mongoose.Types.ObjectId();
+
+    const req = {
+      params: { id: itemId.toString() },
+      body: {}
+    };
+
+    const findByIdStub = sinon.stub(InventoryItem, 'findById').resolves(null);
+
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await updateInventoryItem(req, res);
+
+    expect(findByIdStub.calledOnceWithExactly(itemId.toString())).to.be.true;
+    expect(res.status.calledWith(404)).to.be.true;
+    expect(res.json.calledWithMatch({ message: 'Inventory item not found' })).to.be.true;
+
+    findByIdStub.restore();
+  });
+
+  it('should return 500 if a database error occurs', async () => {
+    const itemId = new mongoose.Types.ObjectId();
+
+    const req = {
+      params: { id: itemId.toString() },
+      body: {}
+    };
+
+    const findByIdStub = sinon.stub(InventoryItem, 'findById').rejects(new Error('DB Error'));
+
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await updateInventoryItem(req, res);
+
+    expect(res.status.calledWith(500)).to.be.true;
+    expect(res.json.calledWithMatch({ message: 'DB Error' })).to.be.true;
+
+    findByIdStub.restore();
+  });
+});
+
+describe('DeleteInventoryItem Function Test', () => {
+  it('should delete an inventory item successfully', async () => {
+    const itemId = new mongoose.Types.ObjectId();
+
+    // Mock item to be deleted
+    const mockItem = {
+      _id: itemId,
+      remove: sinon.stub().resolves()
+    };
+
+    // Stub findById to return the mock item
+    const findByIdStub = sinon.stub(InventoryItem, 'findById').resolves(mockItem);
+
+    const req = { params: { id: itemId.toString() } };
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await deleteInventoryItem(req, res);
+
+    // Assertions
+    expect(findByIdStub.calledOnceWithExactly(itemId.toString())).to.be.true;
+    expect(mockItem.remove.calledOnce).to.be.true;
+    expect(res.json.calledWith({ message: 'Inventory Item deleted' })).to.be.true;
+
+    findByIdStub.restore();
+  });
+
+  it('should return 404 if inventory item not found', async () => {
+    const itemId = new mongoose.Types.ObjectId();
+
+    // Stub findById to return null
+    const findByIdStub = sinon.stub(InventoryItem, 'findById').resolves(null);
+
+    const req = { params: { id: itemId.toString() } };
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await deleteInventoryItem(req, res);
+
+    expect(findByIdStub.calledOnceWithExactly(itemId.toString())).to.be.true;
+    expect(res.status.calledWith(404)).to.be.true;
+    expect(res.json.calledWithMatch({ message: 'Inventory Item not found' })).to.be.true;
+
+    findByIdStub.restore();
+  });
+
+  it('should return 500 if an error occurs', async () => {
+    const itemId = new mongoose.Types.ObjectId();
+
+    const findByIdStub = sinon.stub(InventoryItem, 'findById').rejects(new Error('DB Error'));
+
+    const req = { params: { id: itemId.toString() } };
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await deleteInventoryItem(req, res);
+
+    expect(res.status.calledWith(500)).to.be.true;
+    expect(res.json.calledWithMatch({ message: 'DB Error' })).to.be.true;
+
+    findByIdStub.restore();
+  });
+});
+
+describe('Delete Inventory Item Function Test', () => {
+
+  it('should delete an inventory item successfully', async () => {
+    const itemId = new mongoose.Types.ObjectId();
+
+    // Mock item to be deleted
+    const mockItem = {
+      _id: itemId,
+      remove: sinon.stub().resolves()
+    };
+
+    // Stub findById to return the mock item
+    const findByIdStub = sinon.stub(InventoryItem, 'findById').resolves(mockItem);
+
+    const req = { params: { id: itemId.toString() } };
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await deleteInventoryItem(req, res);
+
+    // Assertions
+    expect(findByIdStub.calledOnceWithExactly(itemId.toString())).to.be.true;
+    expect(mockItem.remove.calledOnce).to.be.true;
+    expect(res.json.calledWith({ message: 'Inventory Item deleted' })).to.be.true;
+
+    findByIdStub.restore();
+  });
+
+  it('should return 404 if inventory item not found', async () => {
+    const itemId = new mongoose.Types.ObjectId();
+
+    // Stub findById to return null
+    const findByIdStub = sinon.stub(InventoryItem, 'findById').resolves(null);
+
+    const req = { params: { id: itemId.toString() } };
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await deleteInventoryItem(req, res);
+
+    expect(findByIdStub.calledOnceWithExactly(itemId.toString())).to.be.true;
+    expect(res.status.calledWith(404)).to.be.true;
+    expect(res.json.calledWithMatch({ message: 'Inventory Item not found' })).to.be.true;
+
+    findByIdStub.restore();
+  });
+
+  it('should return 500 if an error occurs', async () => {
+    const itemId = new mongoose.Types.ObjectId();
+
+    const findByIdStub = sinon.stub(InventoryItem, 'findById').rejects(new Error('DB Error'));
+
+    const req = { params: { id: itemId.toString() } };
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await deleteInventoryItem(req, res);
+
+    expect(res.status.calledWith(500)).to.be.true;
+    expect(res.json.calledWithMatch({ message: 'DB Error' })).to.be.true;
+
+    findByIdStub.restore();
+  });
+});
+
+
+
+describe('getInventoryItemsByFields Controller', () => {
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it('should return all items matching query params', async () => {
+    const req = {
+      query: {
+        itemName: 'Test Item',
+        itemDescription: 'Test Description',
+        itemAvailableQty: '10'
+      }
+    };
+
+    const expectedQuery = {
+      itemName: 'Test Item',
+      itemDescription: 'Test Description',
+      itemAvailableQty: 10
+    };
+
+    const mockItems = [
+      { _id: new mongoose.Types.ObjectId(), itemName: 'Test Item', itemDescription: 'Test Description', itemAvailableQty: 10 }
+    ];
+
+    const findStub = sinon.stub(InventoryItem, 'find').resolves(mockItems);
+
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await getInventoryItemsByFields(req, res);
+
+    expect(findStub.calledOnceWithExactly(expectedQuery)).to.be.true;
+    expect(res.status.calledWith(200)).to.be.true;
+    expect(res.json.calledWith(mockItems)).to.be.true;
+  });
+
+  it('should build query only with provided fields', async () => {
+    const req = {
+      query: {
+        itemName: 'Item Only'
+      }
+    };
+
+    const expectedQuery = { itemName: 'Item Only' };
+
+    const mockItems = [{ itemName: 'Item Only' }];
+
+    const findStub = sinon.stub(InventoryItem, 'find').resolves(mockItems);
+
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    await getInventoryItemsByFields(req, res);
+
+    expect(findStub.calledOnceWithExactly(expectedQuery)).to.be.true;
+    expect(res.status.calledWith(200)).to.be.true;
+    expect(res.json.calledWith(mockItems)).to.be.true;
+  });
+
+  it('should return 500 if an error occurs', async () => {
+    const req = {
+      query: {
+        itemName: 'Broken'
+      }
+    };
+
+    const res = {
+      status: sinon.stub().returnsThis(),
+      json: sinon.spy()
+    };
+
+    const findStub = sinon.stub(InventoryItem, 'find').rejects(new Error('DB Error'));
+
+    await getInventoryItemsByFields(req, res);
+
+    expect(findStub.calledOnce).to.be.true;
+    expect(res.status.calledWith(500)).to.be.true;
+    expect(res.json.calledWithMatch({ message: 'DB Error' })).to.be.true;
+  });
+});
