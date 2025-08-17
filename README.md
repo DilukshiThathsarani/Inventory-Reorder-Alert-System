@@ -69,9 +69,9 @@ PORT=5001
 
 ### Usage
 
-* Open the frontend application in your browser (http://localhost:3000).
-* Use the forms to add, update, or delete inventory records.
-*View all inventory records in a table or card layout with visual indicators for stock levels.
+Open the frontend application in your browser (http://localhost:3000).
+Use the forms to add, update, or delete inventory records.
+View all inventory records in a table or card layout with visual indicators for stock levels.
 
 ### API Endpoint
 | Method | Endpoint         | Description                       |
