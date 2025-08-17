@@ -1,5 +1,5 @@
 {
-  "name": "inventory-manager",
+   "name": "inventory-alerting-system",
   "version": "1.0.0",
   "description": "Complete MERN Inventory Manager Application",
   "scripts": {
